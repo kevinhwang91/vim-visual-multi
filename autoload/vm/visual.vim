@@ -137,7 +137,7 @@ fun! s:vblock(extend) abort
         let inverted = line(".") == line("'<")
     endif
 
-    let block_width = end[1] - start[1]
+    let block_width = abs(virtcol("'>") - virtcol("'<"))
 
     call s:create_cursors(start, end)
 
