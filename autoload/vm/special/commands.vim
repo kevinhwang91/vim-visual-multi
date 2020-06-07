@@ -66,11 +66,7 @@ fun! vm#special#commands#filter_lines() abort
   """Filter lines containing regions, and paste them in a new buffer.
   if !len(s:R()) | return | endif
 
-  let lines = sort(keys(s:G.lines_with_regions(0)))
-  let txt = []
-  for l in lines
-    call add(txt, getline(l))
-  endfor
+  let [lines, txt] = s:lines_with_regions()
   call vm#reset(1)
   let s:buf = bufnr("%")
   noautocmd keepalt botright new! VM\ Filtered\ Lines
@@ -342,13 +338,37 @@ endfun
 " Sort regions                                                             {{{1
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-fun! vm#special#commands#sort(...) abort
+fun! vm#special#commands#sort(sort_lines, ...) abort
   if s:not_active() | return | endif
+  if a:sort_lines
+    return vm#special#commands#sort_lines()
+  endif
   if a:0
     call s:V.Edit.replace_regions_with_text(sort(s:G.regions_text(), a:1))
   else
     call s:V.Edit.replace_regions_with_text(sort(s:G.regions_text()))
   endif
+endfun
+
+fun! vm#special#commands#sort_lines() abort
+  let pos = getpos('.')[1:2]
+  call s:G.one_region_per_line()
+  let [lines, s:original_lines] = s:lines_with_regions()
+  let txt = sort(copy(s:original_lines), function('s:sort_lines'))
+  let i = 0
+  for l in lines
+    call setline(l, txt[i])
+    let i += 1
+  endfor
+  call s:G.cursor_mode()
+  call vm#commands#motion('0', 1, 0, 0)
+  call s:G.update_and_select_region(pos)
+endfun
+
+fun! s:sort_lines(l1, l2) abort
+  let r1 = s:R()[index(s:original_lines, a:l1)].txt
+  let r2 = s:R()[index(s:original_lines, a:l2)].txt
+  return r1 == r2 ? 0 : r1 > r2 ? 1 : -1
 endfun
 
 
@@ -363,7 +383,7 @@ fun! s:set_commands() abort
   command! VMRegionsToBuffer              call vm#special#commands#regions_to_buffer()
   command! VMMassTranspose                call vm#special#commands#mass_transpose()
   command! -bang VMQfix                   call vm#special#commands#qfix(!<bang>0)
-  command! -nargs=? VMSort                call vm#special#commands#sort(<args>)
+  command! -nargs=? -bang VMSort          call vm#special#commands#sort(<bang>0, <args>)
 endfun
 
 fun! vm#special#commands#unset()
@@ -401,6 +421,14 @@ fun! s:temp_buffer() abort
   setlocal nobuflisted
   setlocal nomodified
   let b:VM_buf = s:buf
+endfun
+
+"------------------------------------------------------------------------------
+
+fun! s:lines_with_regions() abort
+  let lines = sort(keys(s:G.lines_with_regions(0)))
+  let txt = map(copy(lines), 'getline(v:val)')
+  return [ lines, txt ]
 endfun
 
 " vim: et ts=2 sw=2 sts=2 :

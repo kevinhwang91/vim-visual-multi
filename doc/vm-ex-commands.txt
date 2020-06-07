@@ -51,9 +51,12 @@ register |quote/|. It won't do anything if VM has been already started.
 
 ------------------------------------------------------------------------------
 
-    VMSort [arg]                                                    *:VMSort*
+    VMSort[!] [arg]                                                  *:VMSort*
 
 Sort regions. Optional [arg] is the same as {func} of the |sort()| function.
+If ! is used, the whole lines containing the regions will be sorted based on
+the regions that the lines contain. Only one region per line will be used, and
+[arg] is ignored.
 
 ------------------------------------------------------------------------------
 
